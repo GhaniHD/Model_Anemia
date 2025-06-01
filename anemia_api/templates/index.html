@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deteksi Anemia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 30px auto;
+        }
+        h1 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"],
+        input[type="text"],
+        select {
+            width: calc(100% - 22px); /* Adjust for padding and border */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            margin-top: 3px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #e9e9e9;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333; /* Darker text for results */
+        }
+        .error {
+            color: red;
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .success-text { color: green; }
+        .warning-text { color: orange; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Deteksi Anemia</h1>
+        <p>Masukkan nilai parameter darah untuk prediksi status anemia:</p>
+        
+        <form id="predictionForm">
+            {% for feature in expected_features %}
+            <div class="form-group">
+                <label for="{{ feature }}">{{ feature }}:</label>
+                {% if feature in categorical_features %}
+                    <select id="{{ feature }}" name="{{ feature }}" required>
+                        <option value="0">0 (Contoh: Pria)</option>
+                        <option value="1">1 (Contoh: Wanita)</option>
+                        </select>
+                {% else %}
+                    <input type="number" id="{{ feature }}" name="{{ feature }}" step="any" required value="10.0"> 
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit">Prediksi</button>
+        </form>
+
+        <div id="result" class="result" style="display:none;"></div>
+        <div id="error" class="error" style="display:none;"></div>
+    </div>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);
+            const data = {};
+        
+            formData.forEach((value, key) => {
+                {% if categorical_features %} // Hanya jalankan jika ada fitur kategorikal
+                if ({{ categorical_features | tojson }}.includes(key)) {
+                    data[key] = value; // Kirim sebagai string
+                } else {
+                    data[key] = parseFloat(value); // Parsing sebagai float
+                }
+                {% else %}
+                // Jika tidak ada fitur kategorikal yang didefinisikan, semua diasumsikan numerik
+                data[key] = parseFloat(value);
+                {% endif %}
+            });
+
+
+            console.log("Mengirim data:", data);
+
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            resultDiv.textContent = 'Memuat prediksi...'; // Tampilkan loading message
+            resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                console.log("Respons API:", result); 
+
+                if (response.ok) {
+                    if (result.status === "success") {
+                        resultDiv.innerHTML = `
+                            Prediksi: <strong class="${result.prediction_label === 'Terkena Anemia' ? 'warning-text' : 'success-text'}">${result.prediction_label}</strong><br>
+                            Probabilitas Tidak Anemia: ${(result.probability_no_anemia * 100).toFixed(2)}%<br>
+                            Probabilitas Terkena Anemia: ${(result.probability_yes_anemia * 100).toFixed(2)}%
+                        `;
+                        resultDiv.style.display = 'block';
+                    } else {
+                        errorDiv.textContent = `Error Status: ${result.error || 'Terjadi kesalahan tidak dikenal.'}`;
+                        errorDiv.style.display = 'block';
+                        resultDiv.style.display = 'none';
+                    }
+                } else { 
+                    errorDiv.textContent = `Error HTTP ${response.status}: ${result.error || 'Terjadi kesalahan pada server.'}`;
+                    errorDiv.style.display = 'block';
+                    resultDiv.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Ada masalah dengan permintaan fetch:', error);
+                errorDiv.textContent = `Tidak dapat terhubung ke server API: ${error.message}`;
+                errorDiv.style.display = 'block';
+                resultDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
