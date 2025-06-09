@@ -161,15 +161,3 @@ Berikut adalah langkah-langkah yang harus dilakukan oleh *backend* untuk mempros
 
 ---
 
-### **Perbaikan FutureWarning**
-Dari output Anda, ada peringatan `FutureWarning` terkait penggunaan `inplace=True` pada DataFrame. Untuk memperbaiki ini, ubah baris pengisian nilai hilang dalam kode preprocessing Anda dari:
-
-```python
-new_data_processed[col].fillna(X_train[col].median(), inplace=True)
-```
-
-Menjadi:
-
-```python
-new_data_processed[col] = new_data_processed[col].fillna(X_train[col].median())
-```
