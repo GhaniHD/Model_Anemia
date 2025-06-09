@@ -1,7 +1,3 @@
-Berikut adalah README yang disesuaikan untuk proyek prediksi anemia berdasarkan data yang Anda berikan. README ini mengikuti struktur dan gaya yang serupa dengan contoh README untuk prediksi serangan jantung yang Anda berikan, dengan penyesuaian untuk konteks anemia.
-
----
-
 # Prediksi Anemia (Anemia Prediction)
 
 Model ini dikembangkan untuk memprediksi status anemia berdasarkan beberapa parameter darah yang relevan. Model telah melalui proses *preprocessing* data yang komprehensif, pelatihan menggunakan Neural Network (TensorFlow/Keras), dan diekspor ke format ONNX untuk inferensi yang efisien di lingkungan produksi.
